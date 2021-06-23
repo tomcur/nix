@@ -78,6 +78,9 @@ struct DerivationGoal : public Goal
        immediate input paths). */
     StorePathSet inputPaths;
 
+    /* All input realisations */
+    std::set<DrvOutput> inputDrvOutputs;
+
     std::map<std::string, InitialOutput> initialOutputs;
 
     /* File descriptor for the log file. */

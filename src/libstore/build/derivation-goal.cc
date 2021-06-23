@@ -481,6 +481,8 @@ void DerivationGoal::inputsRealised()
                that are specified as inputs. */
             assert(worker.store.isValidPath(drvPath));
             auto outputs = worker.store.queryPartialDerivationOutputMap(depDrvPath);
+            auto depDrv = worker.store.readDerivation(depDrvPath);
+            auto drvHashes = staticOutputHashes(worker.store, depDrv);
             for (auto & j : wantedDepOutputs) {
                 if (outputs.count(j) > 0) {
                     auto optRealizedInput = outputs.at(j);
@@ -489,6 +491,15 @@ void DerivationGoal::inputsRealised()
                             "derivation '%s' requires output '%s' from input derivation '%s', which is supposedly realized already, yet we still don't know what path corresponds to that output",
                             worker.store.printStorePath(drvPath), j, worker.store.printStorePath(depDrvPath));
                     worker.store.computeFSClosure(*optRealizedInput, inputPaths);
+
+                    if (settings.isExperimentalFeatureEnabled("ca-derivations")) {
+                        auto inputRealisation = worker.store.queryRealisation(
+                            DrvOutput{drvHashes.at(j), j}
+                        );
+                        assert(inputRealisation);
+                        for (auto & real : Realisation::closure(worker.store, {*inputRealisation}))
+                            inputDrvOutputs.insert(real.id);
+                    }
                 } else
                     throw Error(
                         "derivation '%s' requires non-existent output '%s' from input derivation '%s'",
